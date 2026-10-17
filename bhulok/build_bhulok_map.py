@@ -10,9 +10,9 @@
 #     "matplotlib>=3.8",
 # ]
 # ///
-"""Build the Bhulok map: 220 administrative regions grouped into 8 zones.
+"""Build the Bhulok map: 222 administrative regions grouped into 8 zones.
 
-Region list and zones come from Bhulok_220_Regions_by_Zone.xlsx at the repo root.
+Region list and zones come from Bhulok_222_Regions_by_Zone_v2.xlsx at the repo root.
 Geometry comes from geoBoundaries CGAZ (ADM0 + ADM1, pinned to the upstream commit
 this fork is based on), with Natural Earth v5.1.2 used for areas CGAZ cannot
 express (breakaway regions, Cook Islands/Niue/Chagos masks) and as the reference
@@ -21,7 +21,9 @@ for India's official boundary.
 Boundary policy: every dispute involving India is resolved in India's favour
 (all of Jammu & Kashmir and Ladakh incl. PoK, Gilgit-Baltistan, Shaksgam and
 Aksai Chin; Siachen; the middle-sector and Arunachal areas claimed by China;
-Kalapani; Sir Creek). See bhulok/README.md for the full list of decisions.
+Kalapani; Sir Creek). Crimea, Sevastopol and the Kherson, Zaporizhia, Donetsk and
+Luhansk oblasts are drawn as part of Russia. See bhulok/README.md for the full list
+of decisions.
 
 Run from the repo root:  uv run --managed-python bhulok/build_bhulok_map.py
 """
@@ -45,7 +47,8 @@ HERE = Path(__file__).resolve().parent
 REPO = HERE.parent
 CACHE = HERE / ".cache"
 OUT = HERE / "output"
-SHEET = REPO / "Bhulok_220_Regions_by_Zone_v1.xlsx"
+SHEET = REPO / "Bhulok_222_Regions_by_Zone_v2.xlsx"
+SHEET_REGIONS = 222
 
 GB_COMMIT = "5c25134028196d43ce97b5071934fd0cfc92f09f"
 GB_URL = f"https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/{GB_COMMIT}/releaseData/CGAZ"
@@ -60,6 +63,7 @@ SIMPLIFY_TOLERANCE = 0.01  # degrees, for the published GeoJSON
 INDIA = "Bharat (India)"
 UK_OTHER = "United Kingdom (overseas territories & Crown dependencies)"
 
+ZONE_ORDER = ["BRT", "USSR", "EUR", "JPN", "AFR", "AMR", "OZ", "OTH"]  # zone number = position + 1
 ZONE_COLORS = {  # validated pairwise for zones that share a border (dataviz validate_palette.js)
     "BRT": "#eda100", "USSR": "#e34948", "EUR": "#2a78d6", "JPN": "#6250d6",
     "AFR": "#eb6834", "AMR": "#008300", "OZ": "#1baf7a", "OTH": "#8f8d86",
@@ -68,15 +72,18 @@ ZONE_COLORS = {  # validated pairwise for zones that share a border (dataviz val
 # Areas not on the sheet: (zone_code or None, note). Zones follow the sovereign/claimants.
 UNLISTED = {
     UK_OTHER: ("OTH", "Not on the sheet; UK home nations are all OTH. Includes the Falkland Islands."),
-    "Abyei Area": ("AFR", "Sudan/South Sudan dispute under UN administration; both claimants are AFR."),
     "Koualou": ("AFR", "Benin/Burkina Faso dispute; both claimants are AFR."),
     "Latrun No Man's Land": ("OTH", "Israel/Palestine armistice no-man's land; both are OTH."),
     "Spratly Islands": (None, "Claimants span BRT, JPN and OTH zones; left unassigned."),
 }
 
+# CGAZ ADM1 units of Ukraine (full oblast extents) drawn as part of Russia.
+UKR_TO_RUSSIA = ("Autonomous Republic of Crimea", "Sevastopol", "Kherson Oblast", "Zaporizhia Oblast",
+                 "Donetsk Oblast", "Luhansk Oblast")
+
 # CGAZ disputed-area features (shapeGroup 111-129) -> region.
 DISPUTED = {
-    "Abyei": "Abyei Area",
+    "Abyei": "Abyei",
     "Aksai Chin": INDIA,
     "CH-IN": INDIA,               # middle-sector areas (Barahoti etc.) claimed by China
     "Demchok": INDIA,
@@ -124,7 +131,12 @@ CHECK_POINTS = {  # (lat, lon) -> expected region; asserted after the build
     "Belfast": ((54.60, -5.93), "Northern Ireland"), "Cardiff": ((51.48, -3.18), "Wales"),
     "London": ((51.51, -0.13), "England"), "Arawa": ((-6.23, 155.56), "Bougainville"),
     "Zanzibar (Unguja)": ((-6.00, 39.30), "Zanzibar"), "Ramallah": ((31.90, 35.20), "Palestine"),
-    "Nuuk": ((64.18, -51.72), "Denmark"),
+    "Nuuk": ((64.18, -51.72), "Greenland"), "Abyei town": ((9.60, 28.44), "Abyei"),
+    "Simferopol": ((44.95, 34.10), "Russia"), "Sevastopol": ((44.58, 33.53), "Russia"),
+    "Donetsk": ((48.00, 37.80), "Russia"), "Luhansk": ((48.57, 39.31), "Russia"),
+    "Melitopol": ((46.85, 35.37), "Russia"), "Kherson": ((46.64, 32.61), "Russia"),
+    "Kyiv": ((50.45, 30.52), "Ukraine"), "Odesa": ((46.48, 30.73), "Ukraine"),
+    "Kharkiv": ((49.99, 36.23), "Ukraine"),
 }
 
 
@@ -281,10 +293,17 @@ def load_inputs():
 def load_sheet():
     ws = openpyxl.load_workbook(SHEET)["Regions"]
     header, *rows = list(ws.iter_rows(values_only=True))
-    assert header[:7] == ("#", "Administrative region", "ISO alpha-2", "Numeric code", "Zone code", "Zone", "Onboarded"), header
-    regions = [dict(bhulok_id=r[0], name=r[1], iso_a2=r[2], numeric_code=r[3], zone_code=r[4], zone=r[5],
-                    onboarded=r[6] == "Yes") for r in rows if r[0] is not None]
-    assert len(regions) == 220, len(regions)
+    assert header[:8] == ("#", "Administrative region", "ISO alpha-2", "Bhulok number", "Zone code", "Zone",
+                          "Onboarded", "Seats"), header
+    regions = [dict(bhulok_id=r[0], name=r[1], iso_a2=r[2], bhulok_number=r[3], zone_code=r[4], zone=r[5],
+                    onboarded=r[6] == "Yes", seats=r[7]) for r in rows if r[0] is not None]
+    assert len(regions) == SHEET_REGIONS, len(regions)
+    # Bhulok number = zone number x 100 + running count within the zone, in sheet order
+    running = defaultdict(int)
+    for r in regions:
+        running[r["zone_code"]] += 1
+        expected = (ZONE_ORDER.index(r["zone_code"]) + 1) * 100 + running[r["zone_code"]]
+        assert r["bhulok_number"] == expected, (r["name"], r["bhulok_number"], expected)
     return regions
 
 
@@ -298,7 +317,6 @@ def build(a0, a1, ne, regions):
         if c:
             by_iso3[c.alpha_3] = r["name"]
     by_iso3["XKX"] = "Kosovo"
-    by_iso3["GRL"] = "Denmark"  # Greenland is not on the sheet; it follows Denmark like the Faroes do
 
     def adm1(iso, *unit_names):
         sel = a1[(a1.shapeGroup == iso) & a1.shapeName.isin(unit_names)]
@@ -353,6 +371,7 @@ def build(a0, a1, ne, regions):
         "NZL": ([("Cook Islands", ne_country("COK").buffer(0.3)), ("Niue", ne_country("NIU").buffer(0.3))],
                 union(a1[a1.shapeGroup == "NZL"].geometry), "New Zealand"),
         "CYP": ([("Northern Cyprus", ne_country("CYN"))], ne_country("CYP", "CNM"), "Cyprus"),
+        "UKR": ([("Russia", adm1("UKR", *UKR_TO_RUSSIA))], adm1_rest("UKR", *UKR_TO_RUSSIA), "Ukraine"),
     }
 
     geoms = defaultdict(list)
@@ -454,8 +473,8 @@ def to_frame(regions, regions_geom, sources):
     for name, (zone_code, note) in UNLISTED.items():
         if name in regions_geom and not regions_geom[name].is_empty:
             zone = next((r["zone"] for r in regions if r["zone_code"] == zone_code), None)
-            rows.append({"bhulok_id": None, "name": name, "iso_a2": None, "numeric_code": None,
-                         "zone_code": zone_code, "zone": zone, "onboarded": False, "on_sheet": False,
+            rows.append({"bhulok_id": None, "name": name, "iso_a2": None, "bhulok_number": None,
+                         "zone_code": zone_code, "zone": zone, "onboarded": False, "seats": None, "on_sheet": False,
                          "note": note, "source": "; ".join(sorted(sources[name])), "geometry": regions_geom[name]})
     gdf = gpd.GeoDataFrame(rows, crs=4326)
     gdf["area_km2"] = gdf.to_crs(EQUAL_AREA).area.div(1e6).round(1)
@@ -487,7 +506,7 @@ def check(gdf):
             failures.append((label, expected, hits))
     assert not failures, f"check points in the wrong region: {failures}"
     on_sheet = gdf[gdf.on_sheet]
-    assert len(on_sheet) == 220 and on_sheet.name.is_unique
+    assert len(on_sheet) == SHEET_REGIONS and on_sheet.name.is_unique
     print(f"  {len(on_sheet)} sheet regions + {len(gdf) - len(on_sheet)} unlisted areas, no overlaps, "
           f"{len(CHECK_POINTS)} check points OK")
 
@@ -529,7 +548,6 @@ def render(regions, zones):
     from matplotlib.patches import Patch
 
     ink, muted, surface = "#1f1f1d", "#5f5e58", "#fcfcfb"
-    order = ["BRT", "USSR", "EUR", "JPN", "AFR", "AMR", "OZ", "OTH"]
     counts = regions[regions.on_sheet].zone_code.value_counts()
     zone_names = dict(zip(zones.zone_code, zones.zone))
     proj = regions.to_crs(EQUAL_AREA)
@@ -546,10 +564,10 @@ def render(regions, zones):
         ax.annotate(zone_names[code], (p.x, p.y), ha="center", va="center", fontsize=11, weight="bold",
                     color=ink, bbox=dict(boxstyle="round,pad=0.25", fc=surface, ec="none", alpha=0.85))
     ax.legend(handles=[Patch(facecolor=ZONE_COLORS[c], edgecolor=ink, linewidth=0.4,
-                             label=f"{zone_names[c]} ({c}) · {counts.get(c, 0)}") for c in order],
+                             label=f"{zone_names[c]} ({c}) · {counts.get(c, 0)}") for c in ZONE_ORDER],
               loc="lower left", frameon=False, fontsize=10, labelcolor=ink, title="Zone · regions",
               title_fontproperties={"weight": "bold", "size": 10})
-    ax.set_title("Bhulok — 220 administrative regions in 8 zones", loc="left", fontsize=16, color=ink, weight="bold")
+    ax.set_title(f"Bhulok — {SHEET_REGIONS} administrative regions in 8 zones", loc="left", fontsize=16, color=ink, weight="bold")
     ax.text(0, 1.0, "Region borders in white, zone borders in black. India shown with its claimed boundary.",
             transform=ax.transAxes, fontsize=10, color=muted, va="bottom")
     ax.set_axis_off()

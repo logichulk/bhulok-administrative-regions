@@ -8,14 +8,14 @@ A fork of [wmgeolab/geoBoundaries](https://github.com/wmgeolab/geoBoundaries) (r
 
 ## Bhulok-specific data
 
-`Bhulok_220_Regions_by_Zone.xlsx` is the authoritative list of the 220 Bhulok regions:
-- **Regions** sheet: `#`, `Administrative region`, `ISO alpha-2`, `Numeric code`, `Zone code`, `Zone`, `Onboarded`.
+`Bhulok_222_Regions_by_Zone_v2.xlsx` is the authoritative list of the 222 Bhulok regions (`bhulok/build_bhulok_map.py` reads it and builds `bhulok/output/`):
+- **Regions** sheet: `#`, `Administrative region`, `ISO alpha-2`, `Bhulok number`, `Zone code`, `Zone`, `Onboarded`, `Seats`. Bhulok number = zone number × 100 + running count within the zone in sheet order (BRT 1 … OTH 8); the build asserts this.
 - **Zones** sheet: 8 zones — `BRT` (Bhārat), `USSR`, `EUR`, `JPN` (Nippon), `AFR`, `AMR`, `OZ` (Oceania & Antarctica), `OTH` — with region counts as `COUNTIF` formulas.
 - **Notes** sheet: data was derived from the app's seed files `app/db/seed/S904__zones.sql` and `S905__bhulok_220.sql` (those live in the app repo, not here).
 
 Key mapping caveats when joining Bhulok regions to geoBoundaries:
-- The sheet uses **ISO 3166-1 alpha-2**; geoBoundaries keys everything by **alpha-3** (`IND`, `PAK`, …). Use the numeric code as the bridge.
-- Numeric codes **900–924** are user-assigned for entries with no ISO code (e.g. Tibet, Bougainville, Kurdistan, Zanzibar, England/Scotland/Wales/Northern Ireland). These have no geoBoundaries ADM0 and must be derived from ADM1/ADM2 of a parent country or another source.
+- The sheet uses **ISO 3166-1 alpha-2**; geoBoundaries keys everything by **alpha-3** (`IND`, `PAK`, …). The build maps alpha-2 → alpha-3 with pycountry.
+- Entries with no ISO code (e.g. Tibet, Bougainville, Kurdistan, Zanzibar, Abyei, England/Scotland/Wales/Northern Ireland) have no geoBoundaries ADM0 and are derived from ADM1 of a parent country, a CGAZ disputed area, or Natural Earth.
 - Bougainville (OZ), Kurdistan (OTH), Zanzibar (AFR) and the four UK home nations (OTH) are assigned zones explicitly; Diego Garcia is `BRT`.
 - Only India (`IN`) is marked `Onboarded = Yes`.
 

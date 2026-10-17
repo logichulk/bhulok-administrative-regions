@@ -2,14 +2,14 @@
 
 Administrative-boundary data for **[Project Bhulok](https://www.bhulok.org)** — *One Earth · One Family*.
 
-Bhulok's [members](https://www.bhulok.org/Members.dc.html) are administrative regions, not only sovereign states: every region on Earth is represented, including contested and self-governing territories such as Tibet, Somaliland, Abkhazia, South Ossetia, Kurdistan, Zanzibar, Bougainville and the four UK home nations. This repository holds the boundaries those 220 member regions are drawn from and grouped into Bhulok's 8 zones.
+Bhulok's [members](https://www.bhulok.org/Members.dc.html) are administrative regions, not only sovereign states: every region on Earth is represented, including contested and self-governing territories such as Tibet, Somaliland, Abkhazia, South Ossetia, Kurdistan, Zanzibar, Bougainville and the four UK home nations. This repository holds the boundaries those 222 member regions are drawn from and grouped into Bhulok's 8 zones.
 
 ## What's here
 
 | Path | Contents |
 | -- | -- |
-| `Bhulok_220_Regions_by_Zone.xlsx` | Authoritative list of the 220 Bhulok regions (ISO alpha-2, numeric code, zone, onboarding status) and the 8 zones. |
-| `bhulok/build_bhulok_map.py` | Builds the Bhulok region and zone boundaries from geoBoundaries CGAZ (ADM0 + ADM1), with Natural Earth v5.1.2 for areas CGAZ cannot express. Disputes involving India are resolved along India's claimed boundary. |
+| `Bhulok_222_Regions_by_Zone_v2.xlsx` | Authoritative list of the 222 Bhulok regions (ISO alpha-2, Bhulok number, zone, onboarding status, seats) and the 8 zones. The Bhulok number is zone number × 100 + running count within the zone (1 BRT, 2 USSR, 3 EUR, 4 JPN, 5 AFR, 6 AMR, 7 OZ, 8 OTH), e.g. Bharat (India) = 103. |
+| `bhulok/build_bhulok_map.py` | Builds the Bhulok region and zone boundaries from geoBoundaries CGAZ (ADM0 + ADM1), with Natural Earth v5.1.2 for areas CGAZ cannot express. Disputes involving India are resolved along India's claimed boundary; Crimea, Sevastopol and the Kherson, Zaporizhia, Donetsk and Luhansk oblasts are drawn as part of Russia. |
 | `bhulok/output/` | Build outputs: `bhulok_regions.geojson`, `bhulok_zones.geojson`, `bhulok_regions.csv`, and preview maps. |
 | `sourceData/`, `releaseData/` | The complete geoBoundaries source submissions and release builds, unchanged from upstream (stored in Git LFS). |
 
