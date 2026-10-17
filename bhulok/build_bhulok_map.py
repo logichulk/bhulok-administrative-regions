@@ -45,7 +45,7 @@ HERE = Path(__file__).resolve().parent
 REPO = HERE.parent
 CACHE = HERE / ".cache"
 OUT = HERE / "output"
-SHEET = REPO / "Bhulok_220_Regions_by_Zone.xlsx"
+SHEET = REPO / "Bhulok_220_Regions_by_Zone_v1.xlsx"
 
 GB_COMMIT = "5c25134028196d43ce97b5071934fd0cfc92f09f"
 GB_URL = f"https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/{GB_COMMIT}/releaseData/CGAZ"
@@ -95,6 +95,7 @@ DISPUTED = {
     "Senkakus": "Japan",
     "Spratly Is": "Spratly Islands",
     "West Bank": "Palestine",
+    "Western Sahara": "Western Sahara",
 }
 
 # India's claim (Natural Earth India point-of-view) is applied only inside these
@@ -379,6 +380,7 @@ def build(a0, a1, ne, regions):
 
     regions_geom = {name: union(gs) for name, gs in geoms.items()}
     regions_geom = apply_india_claim(regions_geom, ne["ne_10m_admin_0_countries_ind"], sources)
+    regions_geom = resolve_overlaps(regions_geom)
 
     unknown = set(regions_geom) - names - set(UNLISTED)
     assert not unknown, f"labels not on the sheet: {unknown}"
@@ -423,6 +425,22 @@ def apply_india_claim(regions_geom, ne_ind, sources):
         print(f"  {sector}: {area:,.0f} km² moved to India")
         if moved:
             sources[INDIA].add(f"India's claim (Natural Earth India view): {sector}")
+    return regions_geom
+
+
+def resolve_overlaps(regions_geom):
+    """Remove residual slivers (from repairing invalid CGAZ input, e.g. LTU/RUS) from the larger region."""
+    labels = list(regions_geom)
+    geoms = [regions_geom[k] for k in labels]
+    a, b = STRtree(geoms).query(geoms, predicate="intersects")
+    for i, j in zip(a, b):
+        if i < j:
+            gi, gj = regions_geom[labels[i]], regions_geom[labels[j]]
+            ov = inter(gi, gj)
+            if ov.area > 0:
+                big = labels[i] if gi.area >= gj.area else labels[j]
+                print(f"  removing {ov.area:.1e} deg² overlap of {labels[i]} / {labels[j]} from {big}")
+                regions_geom[big] = diff(regions_geom[big], ov)
     return regions_geom
 
 
