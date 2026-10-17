@@ -159,7 +159,8 @@ def diff(a, b) -> MultiPolygon:
 
 
 def clean(series: gpd.GeoSeries) -> np.ndarray:
-    return shapely.set_precision(shapely.make_valid(series.values), GRID)
+    # snapping can collapse slivers to lines (e.g. CGAZ NZL), which overlays reject as mixed-dimension
+    return np.array([polys(g) for g in shapely.set_precision(shapely.make_valid(series.values), GRID)], dtype=object)
 
 
 def opening(g, w):
@@ -440,6 +441,12 @@ def to_frame(regions, regions_geom, sources):
                          "note": note, "source": "; ".join(sorted(sources[name])), "geometry": regions_geom[name]})
     gdf = gpd.GeoDataFrame(rows, crs=4326)
     gdf["area_km2"] = gdf.to_crs(EQUAL_AREA).area.div(1e6).round(1)
+    # label point is guaranteed inside the region (unlike the centroid of e.g. Chile or an archipelago)
+    label = gdf.representative_point()
+    gdf["label_lat"], gdf["label_lon"] = label.y.round(5), label.x.round(5)
+    bounds = gdf.bounds.round(5)
+    gdf["bbox_west"], gdf["bbox_south"] = bounds.minx, bounds.miny
+    gdf["bbox_east"], gdf["bbox_north"] = bounds.maxx, bounds.maxy
     return gdf
 
 

@@ -1,15 +1,66 @@
-# geoBoundaries
+# Bhulok Administrative Regions
+
+Administrative-boundary data for **[Project Bhulok](https://www.bhulok.org)** — *One Earth · One Family*.
+
+Bhulok's [members](https://www.bhulok.org/Members.dc.html) are administrative regions, not only sovereign states: every region on Earth is represented, including contested and self-governing territories such as Tibet, Somaliland, Abkhazia, South Ossetia, Kurdistan, Zanzibar, Bougainville and the four UK home nations. This repository holds the boundaries those 220 member regions are drawn from and grouped into Bhulok's 8 zones.
+
+## What's here
+
+| Path | Contents |
+| -- | -- |
+| `Bhulok_220_Regions_by_Zone.xlsx` | Authoritative list of the 220 Bhulok regions (ISO alpha-2, numeric code, zone, onboarding status) and the 8 zones. |
+| `bhulok/build_bhulok_map.py` | Builds the Bhulok region and zone boundaries from geoBoundaries CGAZ (ADM0 + ADM1), with Natural Earth v5.1.2 for areas CGAZ cannot express. Disputes involving India are resolved along India's claimed boundary. |
+| `bhulok/output/` | Build outputs: `bhulok_regions.geojson`, `bhulok_zones.geojson`, `bhulok_regions.csv`, and preview maps. |
+| `sourceData/`, `releaseData/` | The complete geoBoundaries source submissions and release builds, unchanged from upstream (stored in Git LFS). |
+
+To rebuild the Bhulok boundaries from the repo root:
+
+```
+uv run --managed-python bhulok/build_bhulok_map.py
+```
+
+## Cloning
+
+All files under `sourceData/` and `releaseData/` are stored in Git LFS (about 41 GB in total). Clone over SSH or with the GitHub CLI; HTTPS clones hit GitHub's LFS rate limits:
+
+```
+git clone git@github.com:logichulk/bhulok-administrative-regions.git
+# or
+gh repo clone logichulk/bhulok-administrative-regions
+```
+
+To skip the large LFS download and fetch only what you need:
+
+```
+GIT_LFS_SKIP_SMUDGE=1 git clone git@github.com:logichulk/bhulok-administrative-regions.git
+git lfs pull --include "releaseData/gbOpen/IND/**"
+```
+
+## Attribution
+
+This repository is a fork of [wmgeolab/geoBoundaries](https://github.com/wmgeolab/geoBoundaries), built by the geoBoundaries community and the [William & Mary geoLab](https://geolab.wm.edu/) and licensed CC BY 4.0 / ODbL. The only requirement for use is acknowledgement. Please cite geoBoundaries when using this data:
+
+> Runfola, D. et al. (2020) geoBoundaries: A global database of political administrative boundaries. PLoS ONE 15(4): e0231866. https://doi.org/10.1371/journal.pone.0231866
+
+Natural Earth data used by the Bhulok build is in the public domain.
+
+---
+
+# About geoBoundaries (upstream)
+
+The rest of this README is the upstream geoBoundaries documentation, kept for reference.
+
 ![image](https://user-images.githubusercontent.com/7882645/216724015-071055db-e635-418b-83a6-acbdde726c6c.png)
 Built by the [community](https://github.com/wmgeolab/geoBoundaries/) and [William & Mary geoLab](https://geolab.wm.edu/), the geoBoundaries Global Database of Political Administrative Boundaries Database is an online, open license (CC BY 4.0 / ODbL) resource of information on administrative boundaries (i.e., state, county) for every country in the world. Since 2016, we have tracked approximately 1 million boundaries within over 200 entities, including all UN member states. All boundaries are available to view or download in common file formats; the only requirement for use is acknowledgement.
 
-# Related Repositories
+## Related Repositories
 The geoBoundaries project is made up of a number of different repositories; you are currently on the core repo which stores all input datasets and builds.  If you are interested in understanding other components of geoBoundaries, you can visit:
 - [geoBoundaryBot](https://github.com/wmgeolab/geoBoundaryBot): where our build scripts live, as well as the various QA/QC algorithms applied to pull requests in this repository.  If you're interested in the specifics of our topology checks or simplification strategies, this is where to look.
 - [gbWeb](https://github.com/wmgeolab/gbWeb): where the website itself lives, as well as the API.  Various scripts that aid in building the API and other things related to the website can be found here as well.
 - [rgeoboundaries](https://github.com/wmgeolab/rgeoboundaries): built by community member @dickoa, this library allows you to retrieve and manipulate geoBoundaries data within the R programming environment.
 - [pygeoboundaries](https://github.com/ibhalin/pygeoboundaries) built by community member @ibhalin, this package allows you to retrieve and manipulate geoBoundaries data within the python programming environment.
 
-# Getting Involved
+## Getting Involved
 We welcome contributions to the geoBoundaries dataset.  Involvement can take many forms: assistance identifying errors in the database, contributing boundary files, or even contributing code for our build or website scripts.  To get started, you could:
 - [Report Boundary Errors](https://github.com/wmgeolab/geoBoundaries/issues/new?assignees=&labels=&template=boundary-errata.md&title=%5BBOUNDARY+ERRATA%5D): While we try to ensure geoBoundaries is as error-free as possible, we are currently tracking around 300 million vertices across hundreds-of-thousands of geometries - there are bound to be issues!  We very much welcome any reports of errors across the database.
 - [Contribute Boundaries](https://github.com/wmgeolab/geoBoundaries/blob/main/CONTRIBUTING.md): We carefully curate all boundaries that are submitted to the database, and have a very active community.  Join us in the fun!  We try to keep things simple for everyone, requiring only a zipfile upload. 
@@ -17,7 +68,7 @@ We welcome contributions to the geoBoundaries dataset.  Involvement can take man
 - [Help with the Python Code](https://github.com/wmgeolab/geoBoundaryBot): We always welcome contributions to our codebase that improve the efficiency of our processing, or introduce new types of checks to automatically prevent errors.  Our code includes a number of different pieces, such as the www.geoboundaries.org website, API, the geoBoundaryBot (responds to PRs), and our formal build scripts.
 
 
-# File Access
+## File Access
 
 We provide three different mechanisms to download geoBoundaries data: a web-based GUI, HTML file access on GitHub (for archival versions), and an API. Releases come in both unsimplified and simplified types, and include a global composite of ADM0, ADM1, and ADM2 with gaps filled between borders ("CGAZ").  Acronyms describing these datasets you may encounter include:
 
